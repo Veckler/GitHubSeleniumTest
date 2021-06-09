@@ -17,9 +17,11 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 public class GitHubSeleniumTest {
 
     public static void main(String[] args) {
-
         System.setProperty("webdriver.gecko.driver", "geckodriver.exe");
         WebDriver driver = new FirefoxDriver();
+
+        String testCaseUrl = "https://github.com/Veckler/SeleniumTestDocs/blob/main/testcase.md";
+//        String testCaseUrl = "https://github.com/livecode/lcfm-native-solutions/blob/master/Sample%20Content%20Management/test-cases/desktopfinal.md";
 
         List<WebElement> issueXpaths = new ArrayList<>();
         List<String> issueUrls = new ArrayList<>();
@@ -27,10 +29,9 @@ public class GitHubSeleniumTest {
         String username = "";
         String password = "";
 
-        String currentIssue = "";
-
         try {
             File credentialsFile = new File("credentials.txt");
+//            File credentialsFile = new File("lccredentials.txt");
             Scanner myReader = new Scanner(credentialsFile);
 
             username = myReader.nextLine();
@@ -41,33 +42,46 @@ public class GitHubSeleniumTest {
             Logger.getLogger(GitHubSeleniumTest.class.getName()).log(Level.SEVERE, null, ex);
         }
 
-        driver.get("https://github.com/Veckler/SeleniumTestDocs/blob/main/testcase.md");
+        //Logging in, getting to the test case url
+//        driver.get(privateUrl);
+        driver.get(testCaseUrl);
         driver.findElement(By.linkText("Sign in")).click();
         driver.findElement(By.id("login_field")).sendKeys(username);
         driver.findElement(By.id("password")).sendKeys(password);
         driver.findElement(By.name("commit")).click();
 
-        driver.findElement(By.xpath("//button[@class='btn-octicon tooltipped tooltipped-nw']")).click();
-
         driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
 
-        issueXpaths = driver.findElements(By.xpath("//div[@role='presentation']//span[contains(text(), 'BROKEN')]//following-sibling::span[contains(text(), 'https')]"));
+        //Make a list of WebElements out of the BROKEN issue numbers
+        issueXpaths = driver.findElements(By.xpath("//div[@id = 'readme']//*[contains(text(), 'BROKEN')]//a"));
         for (int i = 0; i < issueXpaths.size(); i++) {
-            issueUrls.add(issueXpaths.get(i).getText().substring(1, issueXpaths.get(i).getText().length() - 1));
+            issueUrls.add(issueXpaths.get(i).getAttribute("href"));
         }
+        System.out.println(issueUrls.toString());
 
-//        System.out.println("done");
-        WebElement status;
+        //Get urls of issues labeled BROKEN and sort out which one is fixed, remove others
         for (int i = 0; i < issueUrls.size(); i++) {
             driver.get(issueUrls.get(i));
             if (driver.findElements(By.xpath("//span[text() = 'Close issue']")).isEmpty()) {
-                System.out.println("This is fixed, needs updating");
+                System.out.println(issueUrls.get(i) + " is fixed, needs updating");
             } else {
-                System.out.println("This is not fixed, no update needed");
+                issueUrls.remove(i);
+                i--;
             }
         }
 
-//        driver.quit();
+        //Return to TestCase page and start editing
+        driver.get(testCaseUrl);
+        driver.findElement(By.xpath("//button[@class='btn-octicon tooltipped tooltipped-nw']")).click();
+
+        String currentIssueToEdit;
+        for (int i = 0; i < issueUrls.size(); i++) {
+            currentIssueToEdit = issueUrls.get(i).replaceAll(".*issues/+", "#");
+            System.out.println(currentIssueToEdit);
+//            driver.findElement(By.xpath());
+            ////span[contains(text(), '#3909')]//preceding-sibling::span//text()
+        }
+        driver.quit();
         System.exit(0);
     }
 }
